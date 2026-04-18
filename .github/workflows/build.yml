@@ -38,6 +38,12 @@ on:
           - clang-r547379   #lineage-23.0 in android16-qpr3-release
           - clang-r563880c  #lineage-23.2 in android16-qpr3-release
           
+      enable_gcc:
+        description: "Enable-GCC: Enable the GCC support"
+        required: true
+        type: boolean
+        default: false
+
       kernel_source:
         description: "Kernel-Source: Kernel repo's org/user on github"
         required: true
@@ -46,7 +52,17 @@ on:
           - LineageOS
           - crdroidandroid
           - OnePlus12R-development
-          
+          - YAAP
+
+      kernel_source_format:
+        description: "Source-Format: Select ur kernel source format(1 for los etc. 2 for yaap etc.)(keep default if u dont know)"
+        required: true
+        type: choice
+        default: android_kernel
+        options:
+          - android_kernel
+          - kernel
+
       kernel_branch:
         description: "Kernel-Branch: such as lineage-23.2 sixteen-qpr1 etc."
         required: true
@@ -124,7 +140,7 @@ jobs:
   Kernel_CI:
     env:
         GH_TOKEN: ${{ github.token }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     permissions:
       contents: write
       actions: read
@@ -152,15 +168,16 @@ jobs:
           curl \
           dwarves \
           cpio \
-          gcc-aarch64-linux-gnu
+          gcc-aarch64-linux-gnu \
+          gcc-arm-linux-androideabi
           
       - name: Clone Kernel Source
         run: |
-          git clone --depth=1 -b ${{ inputs.kernel_branch }} https://github.com/${{ inputs.kernel_source }}/android_kernel_${{ inputs.brand }}_${{ inputs.soc }}.git ${{ inputs.soc }}
+          git clone --depth=1 -b ${{ inputs.kernel_branch }} https://github.com/${{ inputs.kernel_source }}/${{ inputs.kernel_source_format }}_${{ inputs.brand }}_${{ inputs.soc }}.git ${{ inputs.soc }}
 
           if [[ "${{ inputs.has_modules_repo }}" == "true" ]]; then
 
-            git clone --depth=1 -b ${{ inputs.kernel_branch }} https://github.com/${{ inputs.kernel_source }}/android_kernel_${{ inputs.brand }}_${{ inputs.soc }}-modules.git ${{ inputs.soc }}-modules
+            git clone --depth=1 -b ${{ inputs.kernel_branch }} https://github.com/${{ inputs.kernel_source }}/${{ inputs.kernel_source_format }}_${{ inputs.brand }}_${{ inputs.soc }}-modules.git ${{ inputs.soc }}-modules
 
           fi
 
@@ -278,6 +295,13 @@ jobs:
           export LLVM=1
           export LLVM_IAS=1
 
+          if [[ "${{ inputs.enable_gcc }}" == "true" ]]; then
+
+            export CROSS_COMPILE=aarch64-linux-gnu-
+            export CROSS_COMPILE=arm-linux-androideabi-
+
+          fi
+
           cd ${{ inputs.soc }}
 
           if [[ "${{ inputs.kernel_configs }}" == "Manual-Type" ]]; then
@@ -359,6 +383,13 @@ jobs:
           export SUBARCH=arm64
           export LLVM=1
           export LLVM_IAS=1
+
+          if [[ "${{ inputs.enable_gcc }}" == "true" ]]; then
+
+            export CROSS_COMPILE=aarch64-linux-gnu-
+            export CROSS_COMPILE=arm-linux-androideabi-
+
+          fi
 
           cd ${{ inputs.soc }}
 
